@@ -50,10 +50,33 @@ public class ReplacerStream : Stream
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-        var content = this.contentEncoding.GetString(buffer);
-        var contentBytes = this.contentEncoding.GetBytes(
-            Regex.Replace(content, "http://www.xxx.com", "https://www.xxx.com", RegexOptions.IgnoreCase));
+        var replacedBytes = this.contentEncoding.GetBytes("http://www.xxx.com");
+        var replacementBytes = this.contentEncoding.GetBytes("https://www.xxx.com");
 
-        this.responseFilter.Write(contentBytes, 0, contentBytes.Length);
+        var flag = 0;
+        while (flag < buffer.Length)
+        {
+            if (Match(buffer, flag, replacedBytes))
+            {
+                this.responseFilter.Write(replacementBytes, 0, replacementBytes.Length);
+                flag += replacedBytes.Length;
+            }
+            else
+            {
+                this.responseFilter.Write(buffer, flag, 1);
+                flag++;
+            }
+        }
+    }
+
+    private static bool Match(byte[] compared, int flag, byte[] comparison)
+    {
+        var i = 0;
+        for (; i < comparison.Length && (flag + i) < compared.Length; i++)
+        {
+            if (compared[flag + i] != comparison[i]) break;
+        }
+
+        return i.Equals(comparison.Length);
     }
 }
